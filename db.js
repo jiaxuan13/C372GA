@@ -1,5 +1,5 @@
 const mysql = require('mysql2');
-require('dotenv').config(); // Load variables from .env
+require('dotenv').config(); // Load variables from  .env
 
 //Database connection details
 const db = mysql.createConnection({

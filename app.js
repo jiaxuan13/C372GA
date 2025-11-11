@@ -11,7 +11,7 @@ const app = express();
 //(Kenneth End) 
 
 
-//(Kenneth Starts) 
+//(Kenneth Start) 
 /* ---------- View + forms + static ---------- */
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));

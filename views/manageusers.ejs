@@ -45,7 +45,7 @@
                 <td><%= u.email %></td>
                 <td><span class="badge badge-role"><%= u.role %></span></td>
                 <td>
-                  <!-- SAME route & method names as sample app.js -->
+                  <!-- SAME route & method names as sample app.js. -->
                   <form method="post" action="/updateRole/<%= u.users_id %>" class="d-flex gap-2">
                     <select name="role" class="form-select form-select-sm" required>
                       <option value="customer" <%= u.role==='customer'?'selected':'' %>>customer</option>

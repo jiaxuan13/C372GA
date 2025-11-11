@@ -1,6 +1,6 @@
 const Users = require('../models/userModel');
 
-// Admin Users: list
+// Admin Users: list.
 async function listUsers(req, res) {
   try {
     const users = await Users.listUsers();

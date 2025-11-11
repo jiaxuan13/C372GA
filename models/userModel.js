@@ -1,6 +1,6 @@
 const db = require('../db');
 const pool = db.promise ? db.promise() : null;
-
+//
 function ensurePool() {
   if (!pool) throw new Error('DB connection does not support promises');
 }
