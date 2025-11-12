@@ -1,23 +1,25 @@
 const Users = require('../models/userModel');
 
-// Admin Users: list.
-async function listUsers(req, res) {
-  try {
-    const users = await Users.listUsers();
+// ----------------------- Admin: Users CRUD -----------------------
+
+// List users (callback style)
+function listUsers(req, res) {
+  Users.listUsers(function (err, users) {
+    if (err) {
+      console.error(err);
+      req.flash('error', 'Failed to load users');
+      return res.redirect('/admin');
+    }
     res.render('admin_users_index', {
       user: req.session.user,
-      users,
+      users: users,
       success: req.flash('success'),
       error: req.flash('error')
     });
-  } catch (err) {
-    console.error(err);
-    req.flash('error', 'Failed to load users');
-    return res.redirect('/admin');
-  }
+  });
 }
 
-// Admin Users: new form
+// Show "new user" form
 function newUserForm(req, res) {
   res.render('admin_users_form', {
     user: req.session.user,
@@ -27,146 +29,202 @@ function newUserForm(req, res) {
   });
 }
 
-// Admin Users: create
-async function createUser(req, res) {
-  const { username, email, password, address, contact, role } = req.body;
+// Create user (admin)
+function createUser(req, res) {
+  const body = req.body;
+  const username = body.username;
+  const email = body.email;
+  const password = body.password;
+  const address = body.address;
+  const contact = body.contact;
+  const role = body.role;
+
   if (!username || !email || !password || !address || !contact || !role) {
     req.flash('error', 'All fields are required.');
     return res.redirect('/admin/users/new');
   }
-  try {
-    await Users.createUserAdmin({ username, email, password, address, contact, role });
-    req.flash('success', 'User created.');
-    return res.redirect('/admin/users');
-  } catch (err) {
-    console.error(err);
-    req.flash('error', 'Create user failed. Email may exist.');
-    return res.redirect('/admin/users/new');
-  }
+
+  Users.createUserAdmin(
+    { username: username, email: email, password: password, address: address, contact: contact, role: role },
+    function (err /*, insertId */) {
+      if (err) {
+        console.error(err);
+        req.flash('error', 'Create user failed. Email may exist.');
+        return res.redirect('/admin/users/new');
+      }
+      req.flash('success', 'User created.');
+      return res.redirect('/admin/users');
+    }
+  );
 }
 
-// Admin Users: edit form
-async function editUserForm(req, res) {
+// Edit form (admin)
+function editUserForm(req, res) {
   const id = req.params.id;
-  try {
-    const user = await Users.getById(id);
+  Users.getById(id, function (err, user) {
+    if (err) {
+      console.error(err);
+      req.flash('error', 'User load failed');
+      return res.redirect('/admin/users');
+    }
     if (!user) {
       req.flash('error', 'User not found');
       return res.redirect('/admin/users');
     }
-    const form = { id: user.id, username: user.username, email: user.email, address: user.address, contact: user.contact, role: user.role };
+    const form = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      address: user.address,
+      contact: user.contact,
+      role: user.role
+    };
     res.render('admin_users_form', {
       user: req.session.user,
       mode: 'edit',
-      form,
+      form: form,
       error: req.flash('error')
     });
-  } catch (err) {
-    console.error(err);
-    req.flash('error', 'User load failed');
-    return res.redirect('/admin/users');
-  }
+  });
 }
 
-// Admin Users: update
-async function updateUser(req, res) {
+// Update (admin)
+function updateUser(req, res) {
   const id = req.params.id;
-  const { username, email, password, address, contact, role } = req.body;
-  if (!username || !email || !address || !contact || !role) {
+  const body = req.body;
+
+  if (!body.username || !body.email || !body.address || !body.contact || !body.role) {
     req.flash('error', 'Missing required fields.');
-    return res.redirect(`/admin/users/${id}/edit`);
+    return res.redirect('/admin/users/' + id + '/edit');
   }
-  try {
-    if (password && password.length > 0) {
-      await Users.updateUserWithPassword(id, { username, email, password, address, contact, role });
-      req.flash('success', 'User updated (password changed).');
-    } else {
-      await Users.updateUser(id, { username, email, address, contact, role });
-      req.flash('success', 'User updated.');
-    }
-    return res.redirect('/admin/users');
-  } catch (err) {
-    console.error(err);
-    req.flash('error', 'Update failed.');
-    return res.redirect(`/admin/users/${id}/edit`);
+
+  // If password provided, update with password; else without
+  if (body.password && body.password.length > 0) {
+    Users.updateUserWithPassword(
+      id,
+      {
+        username: body.username,
+        email: body.email,
+        password: body.password,
+        address: body.address,
+        contact: body.contact,
+        role: body.role
+      },
+      function (err /*, result */) {
+        if (err) {
+          console.error(err);
+          req.flash('error', 'Update failed.');
+          return res.redirect('/admin/users/' + id + '/edit');
+        }
+        req.flash('success', 'User updated (password changed).');
+        return res.redirect('/admin/users');
+      }
+    );
+  } else {
+    Users.updateUser(
+      id,
+      {
+        username: body.username,
+        email: body.email,
+        address: body.address,
+        contact: body.contact,
+        role: body.role
+      },
+      function (err /*, result */) {
+        if (err) {
+          console.error(err);
+          req.flash('error', 'Update failed.');
+          return res.redirect('/admin/users/' + id + '/edit');
+        }
+        req.flash('success', 'User updated.');
+        return res.redirect('/admin/users');
+      }
+    );
   }
 }
 
-// Admin Users: delete
-async function deleteUser(req, res) {
+// Delete (admin)
+function deleteUser(req, res) {
   const id = req.params.id;
-  try {
-    await Users.deleteUser(id);
+  Users.deleteUser(id, function (err /*, result */) {
+    if (err) {
+      console.error(err);
+      req.flash('error', 'Delete failed.');
+      return res.redirect('/admin/users');
+    }
     req.flash('success', 'User deleted.');
     return res.redirect('/admin/users');
-  } catch (err) {
-    console.error(err);
-    req.flash('error', 'Delete failed.');
-    return res.redirect('/admin/users');
-  }
+  });
 }
 
 module.exports = {
-  listUsers,
-  newUserForm,
-  createUser,
-  editUserForm,
-  updateUser,
-  deleteUser,
+  listUsers: listUsers,
+  newUserForm: newUserForm,
+  createUser: createUser,
+  editUserForm: editUserForm,
+  updateUser: updateUser,
+  deleteUser: deleteUser,
 };
 
-
-// Public/auth handlers moved from app.js (logic unchanged)
+// ----------------------- Public / Auth handlers -----------------------
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 const connection = require('../db');
 
 // Home
-module.exports.home = (req, res) => {
+module.exports.home = function (req, res) {
   res.render('index', { user: req.session.user, success: req.flash('success') });
 };
 
 // Register form
-module.exports.showRegister = (req, res) => {
+module.exports.showRegister = function (req, res) {
   const formData = req.flash('formData')[0];
 
-  let base32 = req.session._reg2fa_secret;
+  var base32 = req.session._reg2fa_secret;
   if (!base32) {
     base32 = speakeasy.generateSecret({ name: 'FluffyFriend', length: 20 }).base32;
     req.session._reg2fa_secret = base32;
   }
 
-  const otpauthUrl = `otpauth://totp/FluffyFriend?secret=${base32}&issuer=FluffyFriend`;
-  QRCode.toDataURL(otpauthUrl, (err, dataUrl) => {
+  const otpauthUrl = 'otpauth://totp/FluffyFriend?secret=' + base32 + '&issuer=FluffyFriend';
+  QRCode.toDataURL(otpauthUrl, function (err, dataUrl) {
     if (err) {
       console.error(err);
-      return res.render('register', { error: req.flash('error'), formData, twofa: null });
+      return res.render('register', { error: req.flash('error'), formData: formData, twofa: null });
     }
     res.render('register', {
       error: req.flash('error'),
-      formData,
+      formData: formData,
       twofa: { secret: base32, qr: dataUrl }
     });
   });
 };
 
 // Register submit
-module.exports.register = (req, res) => {
-  const { username, email, password, address, contact, role, enable2fa, twofa_token } = req.body;
+module.exports.register = function (req, res) {
+  const body = req.body;
+  const username = body.username;
+  const email = body.email;
+  const password = body.password;
+  const address = body.address;
+  const contact = body.contact;
+  const role = body.role;
+  const enable2fa = body.enable2fa;
+  const twofa_token = body.twofa_token;
 
   if (!username || !email || !password || !address || !contact || !role) {
     req.flash('error', 'All fields are required.');
-    req.flash('formData', req.body);
+    req.flash('formData', body);
     return res.redirect('/register');
   }
   if (password.length < 6) {
     req.flash('error', 'Password must be at least 6 characters.');
-    req.flash('formData', req.body);
+    req.flash('formData', body);
     return res.redirect('/register');
   }
 
-  let twofa_enabled = 0;
-  let twofa_secret_to_save = null;
+  var twofa_enabled = 0;
+  var twofa_secret_to_save = null;
 
   if (enable2fa === 'on') {
     const tempSecret = req.session._reg2fa_secret;
@@ -175,13 +233,13 @@ module.exports.register = (req, res) => {
     const ok = speakeasy.totp.verify({
       secret: tempSecret,
       encoding: 'base32',
-      token,
+      token: token,
       window: 2
     });
 
     if (!ok) {
       req.flash('error', 'Invalid 2FA code. Please try again.');
-      req.flash('formData', req.body);
+      req.flash('formData', body);
       return res.redirect('/register');
     }
 
@@ -190,11 +248,11 @@ module.exports.register = (req, res) => {
   }
 
   const sql = 'INSERT INTO users (username, email, password, address, contact, role, twofa_enabled, twofa_secret) VALUES (?, ?, SHA1(?), ?, ?, ?, ?, ?)';
-  connection.query(sql, [username, email, password, address, contact, role, twofa_enabled, twofa_secret_to_save], (err) => {
+  connection.query(sql, [username, email, password, address, contact, role, twofa_enabled, twofa_secret_to_save], function (err) {
     if (err) {
       console.error(err);
       req.flash('error', 'Registration failed. Email may already exist.');
-      req.flash('formData', req.body);
+      req.flash('formData', body);
       return res.redirect('/register');
     }
     delete req.session._reg2fa_secret;
@@ -205,9 +263,8 @@ module.exports.register = (req, res) => {
 };
 
 // Login form
-module.exports.showLogin = (req, res) => {
-  // If user returns to login, cancel any pending 2FA step
-  delete req.session.pending2FA;
+module.exports.showLogin = function (req, res) {
+  delete req.session.pending2FA; // reset any previous 2FA step
   res.render('login', {
     success_msg: req.flash('success'),
     error_msg: req.flash('error')
@@ -215,8 +272,9 @@ module.exports.showLogin = (req, res) => {
 };
 
 // Login submit
-module.exports.login = (req, res) => {
-  const { email, password } = req.body;
+module.exports.login = function (req, res) {
+  const email = req.body.email;
+  const password = req.body.password;
 
   if (!email || !password) {
     req.flash('error', 'Email and password are required.');
@@ -224,13 +282,13 @@ module.exports.login = (req, res) => {
   }
 
   const sql = 'SELECT * FROM users WHERE email = ? AND password = SHA1(?)';
-  connection.query(sql, [email, password], (err, results) => {
+  connection.query(sql, [email, password], function (err, results) {
     if (err) {
       console.error(err);
       req.flash('error', 'Login error.');
       return res.redirect('/login');
     }
-    if (results.length === 0) {
+    if (!results || results.length === 0) {
       req.flash('error', 'Invalid email or password.');
       return res.redirect('/login');
     }
@@ -249,17 +307,17 @@ module.exports.login = (req, res) => {
 };
 
 // 2FA setup form
-module.exports.twofaSetupForm = (req, res) => {
+module.exports.twofaSetupForm = function (req, res) {
   if (!req.session.user) return res.redirect('/login');
 
   const secret = speakeasy.generateSecret({
-    name: `FluffyFriend (${req.session.user.email})`,
+    name: 'FluffyFriend (' + req.session.user.email + ')',
     length: 20
   });
 
   req.session._twofa_temp = secret.base32;
 
-  QRCode.toDataURL(secret.otpauth_url, (err, dataUrl) => {
+  QRCode.toDataURL(secret.otpauth_url, function (err, dataUrl) {
     if (err) {
       console.error(err);
       req.flash('error', 'Failed to generate QR code');
@@ -273,7 +331,7 @@ module.exports.twofaSetupForm = (req, res) => {
 };
 
 // 2FA setup confirm
-module.exports.twofaSetupConfirm = (req, res) => {
+module.exports.twofaSetupConfirm = function (req, res) {
   if (!req.session.user) return res.redirect('/login');
 
   const tempSecret = req.session._twofa_temp;
@@ -286,7 +344,7 @@ module.exports.twofaSetupConfirm = (req, res) => {
   const ok = speakeasy.totp.verify({
     secret: tempSecret,
     encoding: 'base32',
-    token,
+    token: token,
     window: 1
   });
 
@@ -298,7 +356,7 @@ module.exports.twofaSetupConfirm = (req, res) => {
   connection.query(
     'UPDATE users SET twofa_enabled=1, twofa_secret=? WHERE id=?',
     [tempSecret, req.session.user.id],
-    (err) => {
+    function (err) {
       if (err) {
         console.error(err);
         req.flash('error', 'Failed to enable 2FA');
@@ -312,9 +370,8 @@ module.exports.twofaSetupConfirm = (req, res) => {
 };
 
 // 2FA verify form
-module.exports.twofaVerifyForm = (req, res) => {
+module.exports.twofaVerifyForm = function (req, res) {
   if (!req.session.pending2FA) return res.redirect('/login');
-  // Prevent browser from caching this sensitive page
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
@@ -322,14 +379,14 @@ module.exports.twofaVerifyForm = (req, res) => {
 };
 
 // 2FA verify submit
-module.exports.twofaVerify = (req, res) => {
+module.exports.twofaVerify = function (req, res) {
   const pending = req.session.pending2FA;
   if (!pending) return res.redirect('/login');
 
   const token = (req.body.token || '').trim();
 
-  connection.query('SELECT * FROM users WHERE id=?', [pending.id], (err, rows) => {
-    if (err || rows.length === 0) {
+  connection.query('SELECT * FROM users WHERE id=?', [pending.id], function (err, rows) {
+    if (err || !rows || rows.length === 0) {
       console.error(err);
       req.flash('error', 'User not found');
       delete req.session.pending2FA;
@@ -340,7 +397,7 @@ module.exports.twofaVerify = (req, res) => {
     const ok = speakeasy.totp.verify({
       secret: user.twofa_secret,
       encoding: 'base32',
-      token,
+      token: token,
       window: 1
     });
 
@@ -358,18 +415,20 @@ module.exports.twofaVerify = (req, res) => {
 };
 
 // Logout
-module.exports.logout = (req, res) => {
-  req.session.destroy(() => res.redirect('/'));
+module.exports.logout = function (req, res) {
+  req.session.destroy(function () {
+    res.redirect('/');
+  });
 };
 
-// Products page
-module.exports.products = (req, res) => {
+// Example protected page
+module.exports.products = function (req, res) {
   if (!req.session.user) return res.redirect('/login');
   res.render('products', { user: req.session.user });
 };
 
-// Admin dashboard view (auth handled in app.js)
-module.exports.adminDashboard = (req, res) => {
+// Admin dashboard view
+module.exports.adminDashboard = function (req, res) {
   res.render('admin', {
     user: req.session.user,
     success: req.flash('success'),
