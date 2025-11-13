@@ -10,7 +10,6 @@ const connection = require('./db');
 const app = express();
 //(Kenneth End) 
 
-
 //(Kenneth Start) 
 /* ---------- View + forms + static ---------- */
 app.set('view engine', 'ejs');
@@ -42,7 +41,6 @@ const checkAdmin = (req, res, next) => {
 /* ---------- Core pages ---------- */
 // Home
 app.get('/', userCtrl.home);
-
 
 /* ---------- Register ---------- */
 // GET register — show form + (optional) 2FA QR during registration
@@ -92,9 +90,9 @@ app.post('/admin/users/:id/delete', checkAuthenticated, checkAdmin, userCtrl.del
 
 
 
-
 //(Kenneth Start) 
 /* ---------- Start server ---------- */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('Server running at http://localhost:' + PORT));
 //(Kenneth End) 
+
