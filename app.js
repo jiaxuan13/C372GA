@@ -41,6 +41,8 @@ const checkAdmin = (req, res, next) => {
 
 /* ---------- Core pages ---------- */
 // Home
+app.get('/', userCtrl.home);
+
 
 /* ---------- Register ---------- */
 // GET register — show form + (optional) 2FA QR during registration
