@@ -6,6 +6,10 @@ const flash = require('connect-flash');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 const userCtrl = require('./controllers/userController');
+//(Isaac Start )
+const productCtrl = require('./controllers/productController');
+const multer = require('multer');
+//(Isaac End )
 const connection = require('./db');
 const app = express();
 //(Kenneth End) 
@@ -16,6 +20,21 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+//(Isaac Start )
+/* ---------- Multer for product images ---------- */
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, 'public', 'images', 'products'));
+  },
+  filename: function (req, file, cb) {
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
+  }
+});
+
+const upload = multer({ storage: storage });
+//(Isaac End )
 
 /* ---------- Session + Flash ---------- */
 app.use(session({
@@ -71,8 +90,11 @@ app.post('/2fa/verify', userCtrl.twofaVerify);
 /* ---------- Logout ---------- */
 app.get('/logout', userCtrl.logout);
 
+//(Isaac Start )
 /* ---------- Example protected page ---------- */
-app.get('/products', userCtrl.products);
+/* ---------- Storefront: all products (public) ---------- */
+app.get('/products', productCtrl.showStore);
+//(Isaac End )
 
 /* ---------- Admin dashboard ---------- */
 app.get('/admin', checkAuthenticated, checkAdmin, userCtrl.adminDashboard);
@@ -86,6 +108,15 @@ app.post('/admin/users/:id/edit', checkAuthenticated, checkAdmin, userCtrl.updat
 app.post('/admin/users/:id/delete', checkAuthenticated, checkAdmin, userCtrl.deleteUser);
 //(Kenneth End) 
 
+//(Isaac Start )
+/* ---------- Admin: Products CRU ---------- */
+app.get('/admin/products', checkAuthenticated, checkAdmin, productCtrl.getAllProducts); // render admin/products.ejs
+app.get('/viewproduct/:id', productCtrl.showProductDetails); // View single product (front-end)
+app.get('/admin/products/new', checkAuthenticated, checkAdmin, productCtrl.newProductForm); // render admin/product-add.ejs
+app.post('/admin/products', checkAuthenticated, checkAdmin, upload.single('image'), productCtrl.addProduct);
+app.get('/admin/products/:id/edit', checkAuthenticated, checkAdmin, productCtrl.getProductById); // render admin/product-edit.ejs
+app.post('/admin/products/:id/edit', checkAuthenticated, checkAdmin, upload.single('image'), productCtrl.updateProduct);
+//(Isaac End )
 
 
 
