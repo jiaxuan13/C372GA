@@ -118,6 +118,7 @@ app.get('/admin/products/new', checkAuthenticated, checkAdmin, productCtrl.newPr
 app.post('/admin/products', checkAuthenticated, checkAdmin, upload.single('image'), productCtrl.addProduct);
 app.get('/admin/products/:id/edit', checkAuthenticated, checkAdmin, productCtrl.getProductById); // render admin/product-edit.ejs
 app.post('/admin/products/:id/edit', checkAuthenticated, checkAdmin, upload.single('image'), productCtrl.updateProduct);
+app.post('/admin/products/:id/delete', checkAuthenticated, checkAdmin, productCtrl.deleteProduct);
 
 //(Isaac End )
 
