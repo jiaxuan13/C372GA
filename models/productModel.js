@@ -62,6 +62,15 @@ const Product = {
       callback(null, result.affectedRows);
     });
   },
+
+  //  Delete a product 
+  deleteProduct: function (id, callback) {
+    const sql = 'DELETE FROM products WHERE id = ?';
+    db.query(sql, [id], function (err, result) {
+      if (err) return callback(err);
+      callback(null, result);
+    });
+  }
 };
 
 module.exports = Product;
