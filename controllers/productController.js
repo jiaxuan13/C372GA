@@ -163,4 +163,20 @@ exports.showStore = function (req, res) {
     });
   });
 };
+// Admin: delete product (POST)
+exports.deleteProduct = function (req, res) {
+  const id = req.params.id;
+
+  Product.deleteProduct(id, function (err) {
+    if (err) {
+      console.error('Error deleting product:', err);
+      req.flash('error', 'Delete failed.');
+      return res.redirect('/admin/products');
+    }
+
+    req.flash('success', 'Product deleted.');
+    return res.redirect('/admin/products');
+  });
+};
+
 //Isaac end
